@@ -13,7 +13,7 @@
         html::-webkit-scrollbar { display: none; }
 
         /* --- Modal Transition --- */
-        #viewModal.hidden, #remarkModal.hidden, #mediaModal.hidden, #addPropertyModal.hidden, #loginScreen.hidden { display: none; }
+        #viewModal.hidden, #remarkModal.hidden, #mediaModal.hidden, #addPropertyModal.hidden, #loginScreen.hidden, #restrictionOverlay.hidden { display: none; }
 
         /* --- Utility class for other scrollable elements --- */
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -57,18 +57,24 @@
         </div>
     </div>
 
-    <div id="mainAppContainer" class="hidden container mx-auto bg-white p-6 rounded-lg shadow-md">
+    <div id="mainAppContainer" class="hidden container mx-auto bg-white p-6 rounded-lg shadow-md relative">
+        <div id="restrictionOverlay" class="hidden absolute inset-0 bg-black bg-opacity-60 z-30 flex items-center justify-center rounded-lg">
+             <div class="text-white text-xl font-semibold bg-red-600 px-6 py-3 rounded-md shadow-lg">
+                Logout Action is Restricted
+            </div>
+        </div>
+
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
              <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Property Data</h1>
-                <div id="userInfo" class="text-sm text-gray-600 mt-1">
-                    Logged in as: <span id="userEmailDisplay" class="font-semibold text-indigo-700"></span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                 <button id="addPropertyBtn" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Add New Property</button>
-                 <button id="logoutButton" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Logout</button>
-            </div>
+                 <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Property Data</h1>
+                 <div id="userInfo" class="text-sm text-gray-600 mt-1">
+                     Logged in as: <span id="userEmailDisplay" class="font-semibold text-indigo-700"></span>
+                 </div>
+             </div>
+             <div class="flex items-center gap-2">
+                  <button id="addPropertyBtn" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Add New Property</button>
+                  <button id="logoutButton" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Logout</button>
+             </div>
         </div>
 
         <div class="flex items-center mb-4 gap-4">
@@ -113,10 +119,10 @@
             <div class="flex justify-between items-center mt-6 pt-4 border-t">
                  <button id="deletePropertyButton" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Delete</button>
                  <div class="space-x-2">
-                     <button id="viewMediaButton" class="px-5 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition disabled:opacity-50 disabled:cursor-not-allowed">View Media</button>
-                     <button id="addRemarkButton" class="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Add Remark</button>
-                     <button id="editModalButton" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Edit</button>
-                     <button id="closeModalButtonFooter" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Close</button>
+                      <button id="viewMediaButton" class="px-5 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition disabled:opacity-50 disabled:cursor-not-allowed">View Media</button>
+                      <button id="addRemarkButton" class="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Add Remark</button>
+                      <button id="editModalButton" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Edit</button>
+                      <button id="closeModalButtonFooter" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Close</button>
                  </div>
             </div>
         </div>
@@ -127,10 +133,10 @@
              <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h2 class="text-xl font-bold text-gray-800">Add New Property</h2>
                 <button id="closeAddPropertyModalButton" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-            </div>
-            <div class="flex-grow overflow-y-auto">
-                <iframe id="googleFormFrame" class="w-full h-full" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
-            </div>
+             </div>
+             <div class="flex-grow overflow-y-auto">
+                 <iframe id="googleFormFrame" class="w-full h-full" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+             </div>
         </div>
     </div>
 
@@ -227,6 +233,7 @@
             const loginError = document.getElementById("loginError");
             
             const mainAppContainer = document.getElementById("mainAppContainer");
+            const restrictionOverlay = document.getElementById("restrictionOverlay"); // <-- New element
             const userEmailDisplay = document.getElementById("userEmailDisplay");
             const logoutButton = document.getElementById("logoutButton");
             
@@ -272,6 +279,9 @@
             // --- LOGIN / LOGOUT & SESSION ---
             
             const showLoginScreen = () => {
+                // This function is now only called when a real logout needs to happen,
+                // which is not possible through the button anymore.
+                // It remains for session checking.
                 loginScreen.classList.remove('hidden');
                 mainAppContainer.classList.add('hidden');
                 loginEmailInput.focus();
@@ -287,7 +297,7 @@
                 if (state.syncIntervalId) clearInterval(state.syncIntervalId); // Clear any old interval
                 state.syncIntervalId = setInterval(() => {
                     fetchData(true); // Sync in the background
-                }, 5000); // Sync every 5 seconds
+                }, 5 * 60 * 1000); // Sync every 5 minutes
             };
             
             const handleLogin = (e) => {
@@ -307,22 +317,20 @@
                 showAppScreen();
             };
             
+            // --- MODIFIED LOGOUT HANDLER ---
+            // This function NO LONGER logs the user out.
+            // It just shows a temporary message.
             const handleLogout = () => {
-                // --- STOP BACKGROUND SYNC ON LOGOUT ---
-                if (state.syncIntervalId) {
-                    clearInterval(state.syncIntervalId);
-                    state.syncIntervalId = null;
-                }
+                // Show the restriction overlay with the "Restricted" message.
+                restrictionOverlay.classList.remove('hidden');
 
-                state.currentUser = null;
-                state.allData = [];
-                state.filteredData = [];
-                sessionStorage.removeItem('currentUserEmail');
-                tableContainer.innerHTML = '';
-                pageInfo.textContent = '';
-                showLoginScreen();
+                // Set a timer to automatically hide the overlay after a few seconds.
+                // This informs the user about the restriction without getting them stuck.
+                setTimeout(() => {
+                    restrictionOverlay.classList.add('hidden');
+                }, 2500); // Overlay will be visible for 2.5 seconds.
             };
-            
+
             const checkLoginStatus = () => {
                 const user = sessionStorage.getItem('currentUserEmail');
                 if (user) {
@@ -383,7 +391,7 @@
                     if (result.success) {
                         const allUserData = result.data || [];
                         state.allData = allUserData.filter(item => item.emailAddress && item.emailAddress.toLowerCase() === state.currentUser)
-                                                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                                                   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         refreshView();
                     } else {
                         throw new Error(result.message || 'Failed to load data from API');
@@ -411,7 +419,7 @@
                 tableContainer.innerHTML = `<div class="text-center p-10 text-red-500">${message}</div>`;
             }
 
-            // --- RENDER FUNCTIONS (Unchanged from original logic, now operates on filtered data) ---
+            // --- RENDER FUNCTIONS ---
             const renderTable = () => {
                 let tableHTML = `
                     <table class="min-w-full bg-white rounded-lg shadow">
@@ -495,7 +503,7 @@
                 updatePagination();
             };
 
-            // --- MODAL FUNCTIONS (All original logic is preserved) ---
+            // --- MODAL FUNCTIONS ---
             const populateModalView = (item) => {
                 modalContent.innerHTML = '';
                 const sections = {};
@@ -557,7 +565,7 @@
                 if (state.lastFocusedElement) state.lastFocusedElement.focus();
             };
 
-            // --- EVENT HANDLERS (All original logic is preserved) ---
+            // --- EVENT HANDLERS ---
             const handleFilter = debounce(() => {
                 state.currentPage = 1;
                 refreshView();
